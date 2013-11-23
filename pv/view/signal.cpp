@@ -27,6 +27,8 @@
 #include <QFormLayout>
 #include <QMenu>
 
+#include <pv/widgets/popup.h>
+
 #include "signal.h"
 #include "view.h"
 
@@ -83,9 +85,11 @@ const sr_probe* Signal::probe() const
 	return _probe;
 }
 
-void Signal::populate_popup_form(QWidget *parent, QFormLayout *form)
+void Signal::populate_popup_form()
 {
-	_name_widget = new QComboBox(parent);
+	assert(_active_popup);
+
+	_name_widget = new QComboBox(_active_popup);
 	_name_widget->setEditable(true);
 
 	for(unsigned int i = 0; i < countof(ProbeNames); i++)
@@ -95,9 +99,9 @@ void Signal::populate_popup_form(QWidget *parent, QFormLayout *form)
 	connect(_name_widget, SIGNAL(editTextChanged(const QString&)),
 		this, SLOT(on_text_changed(const QString&)));
 
-	form->addRow(tr("Name"), _name_widget);
+	_active_popup_form->addRow(tr("Name"), _name_widget);
 
-	add_colour_option(parent, form);
+	add_colour_option();
 }
 
 QMenu* Signal::create_context_menu(QWidget *parent)

@@ -41,7 +41,9 @@ const int Trace::LabelHitPadding = 2;
 Trace::Trace(pv::SigSession &session, QString name) :
 	_session(session),
 	_name(name),
-	_v_offset(0)
+	_v_offset(0),
+	_active_popup(NULL),
+	_active_popup_form(NULL)
 {
 }
 
@@ -179,11 +181,17 @@ QMenu* Trace::create_context_menu(QWidget *parent)
 pv::widgets::Popup* Trace::create_popup(QWidget *parent)
 {
 	using pv::widgets::Popup;
-	Popup *const popup = new Popup(parent);
-	QFormLayout *const form = new QFormLayout(popup);
-	popup->setLayout(form);
-	populate_popup_form(popup, form);
-	return popup;
+
+	_active_popup = new Popup(parent);
+	_active_popup_form = new QFormLayout(_active_popup);
+	_active_popup->setLayout(_active_popup_form);
+
+	populate_popup_form();
+
+	connect(_active_popup, SIGNAL(closed()),
+		this, SLOT(on_popup_closed()));
+
+	return _active_popup;
 }
 
 int Trace::get_y() const
@@ -202,29 +210,29 @@ void Trace::paint_axis(QPainter &p, int y, int left, int right)
 	p.drawLine(QPointF(left, y + 0.5f), QPointF(right, y + 0.5f));
 }
 
-void Trace::add_colour_option(QWidget *parent, QFormLayout *form)
+void Trace::add_colour_option()
 {
 	using pv::widgets::ColourButton;
 
 	ColourButton *const colour_button = new ColourButton(
-		TracePalette::Rows, TracePalette::Cols, parent);
+		TracePalette::Rows, TracePalette::Cols, _active_popup);
 	colour_button->set_palette(TracePalette::Colours);
 	colour_button->set_colour(_colour);
 	connect(colour_button, SIGNAL(selected(const QColor&)),
 		this, SLOT(on_colour_changed(const QColor&)));
 
-	form->addRow(tr("Colour"), colour_button);
+	_active_popup_form->addRow(tr("Colour"), colour_button);
 }
 
-void Trace::populate_popup_form(QWidget *parent, QFormLayout *form)
+void Trace::populate_popup_form()
 {
-	QLineEdit *const name_edit = new QLineEdit(parent);
+	QLineEdit *const name_edit = new QLineEdit(_active_popup);
 	name_edit->setText(_name);
 	connect(name_edit, SIGNAL(textChanged(const QString&)),
 		this, SLOT(on_text_changed(const QString&)));
-	form->addRow(tr("Name"), name_edit);
+	_active_popup_form->addRow(tr("Name"), name_edit);
 
-	add_colour_option(parent, form);
+	add_colour_option();
 }
 
 void Trace::compute_text_size(QPainter &p)
@@ -248,6 +256,12 @@ QRectF Trace::get_label_rect(int right)
 		right - label_arrow_length - label_size.width() - 0.5,
 		get_y() + 0.5f - label_size.height() / 2,
 		label_size.width(), label_size.height());
+}
+
+void Trace::on_popup_closed()
+{
+	_active_popup = NULL;
+	_active_popup_form = NULL;
 }
 
 void Trace::on_text_changed(const QString &text)

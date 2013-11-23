@@ -32,6 +32,7 @@
 #include "pv/data/logic.h"
 #include "pv/data/logicsnapshot.h"
 #include "pv/view/view.h"
+#include "pv/widgets/popup.h"
 
 using namespace boost;
 using namespace std;
@@ -230,11 +231,14 @@ void LogicSignal::init_trigger_actions(QWidget *parent)
 		this, SLOT(on_trigger_change()));
 }
 
-void LogicSignal::populate_popup_form(QWidget *parent, QFormLayout *form)
+void LogicSignal::populate_popup_form()
 {
+	assert(_active_popup);
+	assert(_active_popup_form);
+
 	GVariant *gvar;
 
-	Signal::populate_popup_form(parent, form);
+	Signal::populate_popup_form();
 
 	// Add the trigger actions
 	const sr_dev_inst *const sdi = _session.get_device();
@@ -246,7 +250,7 @@ void LogicSignal::populate_popup_form(QWidget *parent, QFormLayout *form)
 
 		if (trig_types && trig_types[0] != '\0')
 		{
-			_trigger_bar = new QToolBar(parent);
+			_trigger_bar = new QToolBar(_active_popup);
 
 			init_trigger_actions(_trigger_bar);
 			_trigger_bar->addAction(_trigger_none);
@@ -258,7 +262,8 @@ void LogicSignal::populate_popup_form(QWidget *parent, QFormLayout *form)
 		
 			update_trigger_actions();
 
-			form->addRow(tr("Trigger"), _trigger_bar);
+			_active_popup_form->addRow(tr("Trigger"),
+				_trigger_bar);
 		}
 
 		g_variant_unref(gvar);

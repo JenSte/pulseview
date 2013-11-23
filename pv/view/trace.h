@@ -160,9 +160,9 @@ protected:
 	 */
 	void paint_axis(QPainter &p, int y, int left, int right);
 
-	void add_colour_option(QWidget *parent, QFormLayout *form);
+	void add_colour_option();
 
-	virtual void populate_popup_form(QWidget *parent, QFormLayout *form);
+	virtual void populate_popup_form();
 
 private:
 
@@ -185,6 +185,8 @@ private slots:
 
 	void on_colour_changed(const QColor &colour);
 
+	void on_popup_closed();
+
 signals:
 	void visibility_changed();
 	void text_changed();	
@@ -199,6 +201,9 @@ protected:
 	int _v_offset;
 
 	QSizeF _text_size;
+
+	pv::widgets::Popup *_active_popup;
+	QFormLayout *_active_popup_form;
 };
 
 } // namespace view

@@ -42,6 +42,7 @@ extern "C" {
 #include <pv/view/view.h>
 #include <pv/view/decode/annotation.h>
 #include <pv/widgets/decodermenu.h>
+#include <pv/widgets/popup.h>
 
 using namespace boost;
 using namespace std;
@@ -128,14 +129,14 @@ void DecodeTrace::paint_mid(QPainter &p, int left, int right)
 	}
 }
 
-void DecodeTrace::populate_popup_form(QWidget *parent, QFormLayout *form)
+void DecodeTrace::populate_popup_form()
 {
-	assert(form);
-	assert(parent);
+	assert(_active_popup);
+	assert(_active_popup_form);
 	assert(_decoder_stack);
 
 	// Add the standard options
-	Trace::populate_popup_form(parent, form);
+	Trace::populate_popup_form();
 
 	// Add the decoder options
 	_bindings.clear();
@@ -143,21 +144,21 @@ void DecodeTrace::populate_popup_form(QWidget *parent, QFormLayout *form)
 
 	BOOST_FOREACH(shared_ptr<data::decode::Decoder> dec,
 		_decoder_stack->stack())
-		create_decoder_form(dec, parent, form);
+		create_decoder_form(dec);
 
-	form->addRow(new QLabel(
-		tr("<i>* Required Probes</i>"), parent));
+	_active_popup_form->addRow(new QLabel(
+		tr("<i>* Required Probes</i>"), _active_popup));
 
 	// Add stacking button
 	pv::widgets::DecoderMenu *const decoder_menu =
-		new pv::widgets::DecoderMenu(parent);
+		new pv::widgets::DecoderMenu(_active_popup);
 	connect(decoder_menu, SIGNAL(decoder_selected(srd_decoder*)),
 		this, SLOT(on_stack_decoder(srd_decoder*)));
 
 	QPushButton *const stack_button =
-		new QPushButton(tr("Stack Decoder"), parent);
+		new QPushButton(tr("Stack Decoder"), _active_popup);
 	stack_button->setMenu(decoder_menu);
-	form->addRow(NULL, stack_button);
+	_active_popup_form->addRow(NULL, stack_button);
 }
 
 QMenu* DecodeTrace::create_context_menu(QWidget *parent)
@@ -195,8 +196,7 @@ void DecodeTrace::draw_error(QPainter &p, const QString &message,
 	p.drawText(text_rect, message);
 }
 
-void DecodeTrace::create_decoder_form(shared_ptr<data::decode::Decoder> &dec,
-	QWidget *parent, QFormLayout *form)
+void DecodeTrace::create_decoder_form(shared_ptr<data::decode::Decoder> &dec)
 {
 	const GSList *probe;
 
@@ -204,16 +204,18 @@ void DecodeTrace::create_decoder_form(shared_ptr<data::decode::Decoder> &dec,
 	const srd_decoder *const decoder = dec->decoder();
 	assert(decoder);
 
-	form->addRow(new QLabel(tr("<h3>%1</h3>").arg(decoder->name), parent));
+	_active_popup_form->addRow(new QLabel(tr("<h3>%1</h3>").arg(
+		decoder->name), _active_popup));
 
 	// Add the mandatory probes
 	for(probe = decoder->probes; probe; probe = probe->next) {
 		const struct srd_probe *const p =
 			(struct srd_probe *)probe->data;
-		QComboBox *const combo = create_probe_selector(parent, dec, p);
+		QComboBox *const combo = create_probe_selector(
+			_active_popup, dec, p);
 		connect(combo, SIGNAL(currentIndexChanged(int)),
 			this, SLOT(on_probe_selected(int)));
-		form->addRow(tr("<b>%1</b> (%2) *")
+		_active_popup_form->addRow(tr("<b>%1</b> (%2) *")
 			.arg(p->name).arg(p->desc), combo);
 
 		const ProbeSelector s = {combo, dec, p};
@@ -224,10 +226,11 @@ void DecodeTrace::create_decoder_form(shared_ptr<data::decode::Decoder> &dec,
 	for(probe = decoder->opt_probes; probe; probe = probe->next) {
 		const struct srd_probe *const p =
 			(struct srd_probe *)probe->data;
-		QComboBox *const combo = create_probe_selector(parent, dec, p);
+		QComboBox *const combo = create_probe_selector(
+			_active_popup, dec, p);
 		connect(combo, SIGNAL(currentIndexChanged(int)),
 			this, SLOT(on_probe_selected(int)));
-		form->addRow(tr("<b>%1</b> (%2)")
+		_active_popup_form->addRow(tr("<b>%1</b> (%2)")
 			.arg(p->name).arg(p->desc), combo);
 
 		const ProbeSelector s = {combo, dec, p};
@@ -237,7 +240,7 @@ void DecodeTrace::create_decoder_form(shared_ptr<data::decode::Decoder> &dec,
 	// Add the options
 	shared_ptr<prop::binding::DecoderOptions> binding(
 		new prop::binding::DecoderOptions(_decoder_stack, dec));
-	binding->add_properties_to_form(form, true);
+	binding->add_properties_to_form(_active_popup_form, true);
 
 	_bindings.push_back(binding);
 }

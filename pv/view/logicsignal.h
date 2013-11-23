@@ -81,7 +81,7 @@ private:
 
 	void init_trigger_actions(QWidget *parent);
 
-	void populate_popup_form(QWidget *parent, QFormLayout *form);
+	void populate_popup_form();
 	
 	void add_trigger_action(const char *trig_types, char type,
 		QAction *action);

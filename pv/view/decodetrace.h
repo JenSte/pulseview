@@ -90,7 +90,7 @@ public:
 	 **/
 	void paint_mid(QPainter &p, int left, int right);
 
-	void populate_popup_form(QWidget *parent, QFormLayout *form);
+	void populate_popup_form();
 
 	QMenu* create_context_menu(QWidget *parent);
 
@@ -101,8 +101,7 @@ private:
 		int left, int right);
 
 	void create_decoder_form(
-		boost::shared_ptr<pv::data::decode::Decoder> &dec,
-		QWidget *parent, QFormLayout *form);
+		boost::shared_ptr<pv::data::decode::Decoder> &dec);
 
 	QComboBox* create_probe_selector(QWidget *parent,
 		const boost::shared_ptr<pv::data::decode::Decoder> &dec,

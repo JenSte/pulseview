@@ -60,7 +60,7 @@ public:
 
 	const sr_probe* probe() const;
 
-	virtual void populate_popup_form(QWidget *parent, QFormLayout *form);
+	virtual void populate_popup_form();
 
 	QMenu* create_context_menu(QWidget *parent);
 
