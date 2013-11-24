@@ -346,6 +346,18 @@ void DecodeTrace::on_stack_decoder(srd_decoder *decoder)
 	_decoder_stack->push(shared_ptr<data::decode::Decoder>(
 		new data::decode::Decoder(decoder)));
 	_decoder_stack->begin_decode();
+
+	// Clear the layout
+
+	// Transfer the layout and the child widgets to a temporary widget
+	// which then goes out of scope destroying the layout and all the child
+	// widgets.
+	assert(_active_popup_form);
+	QWidget().setLayout(_active_popup_form);
+
+	// Repopulate the popup
+	_active_popup_form = new QFormLayout(_active_popup);
+	populate_popup_form();
 }
 
 } // namespace view
