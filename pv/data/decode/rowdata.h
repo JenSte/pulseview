@@ -47,6 +47,13 @@ public:
 	void push_annotation(const Annotation &a);
 
 private:
+	static void search_annotation_subset(
+		std::vector<Annotation>::const_iterator begin,
+		std::vector<Annotation>::const_iterator end,
+		uint64_t start_sample, uint64_t end_sample,
+		std::vector<Annotation> *const dest);
+
+private:
 	std::vector<Annotation> _annotations;
 };
 

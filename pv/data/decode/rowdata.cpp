@@ -18,8 +18,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include <cassert>
+
+#include <boost/thread.hpp>
+
 #include "rowdata.h"
 
+using boost::thread;
+using std::inserter;
 using std::vector;
 
 namespace pv {
@@ -41,11 +47,44 @@ void RowData::get_annotation_subset(
 	vector<pv::data::decode::Annotation> &dest,
 	uint64_t start_sample, uint64_t end_sample) const
 {
-	for (vector<Annotation>::const_iterator i = _annotations.begin();
-		i != _annotations.end(); i++)
-		if ((*i).end_sample() > start_sample &&
-			(*i).start_sample() < end_sample)
-			dest.push_back(*i);
+	const size_t ThreadCount = 4;
+	vector<Annotation> sections[ThreadCount];
+	thread threads[ThreadCount];
+
+	const size_t section_length = (_annotations.size() + ThreadCount - 1) /
+		ThreadCount;
+
+	for (size_t i = 0; i < ThreadCount; i++) {
+		const vector<Annotation>::const_iterator first =
+			_annotations.begin() + section_length * i;
+		const vector<Annotation>::const_iterator last =
+			_annotations.begin() +
+			std::min(section_length * (i+1), _annotations.size());
+
+		threads[i] = thread(RowData::search_annotation_subset,
+			first, last, start_sample, end_sample, sections + i);
+	}
+
+	for (size_t i = 0; i < ThreadCount; i++) {
+		threads[i].join();
+		copy(sections[i].begin(), sections[i].end(),
+			back_inserter(dest));
+	}
+}
+
+void RowData::search_annotation_subset(
+	vector<Annotation>::const_iterator first,
+	vector<Annotation>::const_iterator last,
+	uint64_t start_sample, uint64_t end_sample,
+	vector<Annotation> *const dest)
+{
+	assert(dest);
+	while(first != last) {
+		if ((*first).end_sample() > start_sample &&
+			(*first).start_sample() <= end_sample)
+			dest->push_back(*first);
+		first++;
+	}
 }
 
 void RowData::push_annotation(const Annotation &a)
