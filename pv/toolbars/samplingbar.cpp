@@ -143,9 +143,12 @@ void SamplingBar::set_selected_device(shared_ptr<pv::device::DevInst> dev_inst)
 	for (int i = 0; i < _device_selector.count(); i++)
 		if (dev_inst->dev_inst() ==
 			_device_selector.itemData(i).value<void*>()) {
-			// Calling this leads to on_device_selected being
-			// invoked, which updates the sampling bar widgets.
+			// Suppress on_device_selected while setting the index.
+			_updating_device_selector = true;
 			_device_selector.setCurrentIndex(i);
+			_updating_device_selector = false;
+
+			on_device_selected();
 			return;
 		}
 }
