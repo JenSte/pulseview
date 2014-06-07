@@ -61,6 +61,7 @@
 
 using std::list;
 using std::shared_ptr;
+using std::vector;
 
 namespace pv {
 
@@ -76,7 +77,8 @@ MainWindow::MainWindow(DeviceManager &device_manager,
 	QWidget *parent) :
 	QMainWindow(parent),
 	_device_manager(device_manager),
-	_session(device_manager)
+	_session(device_manager),
+	_transition_search(NULL)
 {
 	setup_ui();
 	if (open_file_name) {
@@ -504,26 +506,93 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionCursorPrev_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::previous,
+		pv::view::TransitionSearch::Edge::any);
 }
 
 void MainWindow::on_actionCursorPrevFalling_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::previous,
+		pv::view::TransitionSearch::Edge::falling);
 }
 
 void MainWindow::on_actionCursorPrevRising_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::previous,
+		pv::view::TransitionSearch::Edge::rising);
 }
 
 void MainWindow::on_actionCursorNextFalling_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::next,
+		pv::view::TransitionSearch::Edge::falling);
 }
 
 void MainWindow::on_actionCursorNextRising_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::next,
+		pv::view::TransitionSearch::Edge::rising);
 }
 
 void MainWindow::on_actionCursorNext_triggered()
 {
+	start_transition_search(pv::view::TransitionSearch::Direction::next,
+		pv::view::TransitionSearch::Edge::any);
+}
+
+void MainWindow::start_transition_search(
+	pv::view::TransitionSearch::Direction direction,
+	pv::view::TransitionSearch::Edge edge)
+{
+	if (NULL != _transition_search) {
+		// there is already a search going on
+		return;
+	}
+
+	// use the position of the left or the right cursor, depending on the
+	// direction we go (it's currently only possible to move the cursors apart
+	// from each other)
+	const double position =
+		(direction == pv::view::TransitionSearch::Direction::next) ?
+		_view->cursors().second()->time() :
+		_view->cursors().first()->time();
+
+	// get the selected logic signals
+	vector<shared_ptr<view::LogicSignal>> logic_signals;
+	for (const auto &s: _session.get_signals()) {
+		shared_ptr<view::LogicSignal> ls =
+			std::dynamic_pointer_cast<view::LogicSignal>(s);
+		if (ls && ls->enabled() && ls->selected()) {
+			logic_signals.push_back(ls);
+		}
+	}
+
+	if (logic_signals.size() != 1) {
+		return;
+	}
+
+	_transition_search =
+		new pv::view::TransitionSearch(this, logic_signals[0], position,
+			direction, edge);
+	// use a queued connection so we can delete the TransitionSearch
+	// object in the slot
+	connect(_transition_search, SIGNAL(done(bool, double)),
+		this, SLOT(transition_search_done(bool, double)),
+		Qt::QueuedConnection);
+}
+
+void MainWindow::transition_search_done(bool success, double where)
+{
+	if (success) {
+		if (where < _view->cursors().first()->time()) {
+			_view->cursors().first()->set_time(where);
+		} else {
+			_view->cursors().second()->set_time(where);
+		}
+	}
+
+	delete _transition_search;
+	_transition_search = NULL;
 }
 
 void MainWindow::add_decoder(srd_decoder *decoder)

@@ -27,6 +27,7 @@
 #include <QMainWindow>
 
 #include "sigsession.h"
+#include "view/transitionsearch.h"
 
 struct srd_decoder;
 
@@ -104,6 +105,8 @@ private slots:
 	void on_actionCursorNextRising_triggered();
 	void on_actionCursorNext_triggered();
 
+	void transition_search_done(bool success, double where);
+
 	void add_decoder(srd_decoder *decoder);
 
 	void run_stop();
@@ -128,11 +131,16 @@ private:
 	SigSession _session;
 
 	pv::view::View *_view;
+	pv::view::TransitionSearch *_transition_search;
 
 	QWidget *_central_widget;
 	QVBoxLayout *_vertical_layout;
 
 	toolbars::SamplingBar *_sampling_bar;
+
+	void start_transition_search(
+		pv::view::TransitionSearch::Direction direction,
+		pv::view::TransitionSearch::Edge edge);
 };
 
 } // namespace pv
