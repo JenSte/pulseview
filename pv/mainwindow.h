@@ -97,6 +97,13 @@ private slots:
 
 	void on_actionAbout_triggered();
 
+	void on_actionCursorPrev_triggered();
+	void on_actionCursorPrevFalling_triggered();
+	void on_actionCursorPrevRising_triggered();
+	void on_actionCursorNextFalling_triggered();
+	void on_actionCursorNextRising_triggered();
+	void on_actionCursorNext_triggered();
+
 	void add_decoder(srd_decoder *decoder);
 
 	void run_stop();

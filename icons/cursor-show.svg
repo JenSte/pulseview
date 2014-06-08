@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" height="22" width="22" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<g transform="translate(0 -1030.4)">
+<rect transform="translate(0 1030.4)" height="2" width="2" stroke="#204a87" y="3" x="4" fill="#204a87"/>
+<rect transform="translate(0 1030.4)" height="2" width="2" stroke="#204a87" y="3" x="16" fill="#204a87"/>
+<rect fill-opacity=".45833" transform="translate(0 1030.4)" height="11" width="12" y="7" x="5" fill="#3465a4"/>
+<path stroke="#204a87" stroke-width="1px" fill="none" d="m5 20v-15" transform="translate(0 1030.4)"/>
+<path stroke="#204a87" stroke-width="1px" fill="none" d="m17 20v-15" transform="translate(0 1030.4)"/>
+</g>
+</svg>

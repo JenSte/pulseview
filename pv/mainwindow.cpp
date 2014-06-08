@@ -192,17 +192,6 @@ void MainWindow::setup_ui()
 		QString::fromUtf8("actionViewZoomOneToOne"));
 	menu_view->addAction(action_view_zoom_one_to_one);
 
-	menu_view->addSeparator();
-
-	QAction *action_view_show_cursors = new QAction(this);
-	action_view_show_cursors->setCheckable(true);
-	action_view_show_cursors->setChecked(_view->cursors_shown());
-	action_view_show_cursors->setShortcut(QKeySequence(Qt::Key_C));
-	action_view_show_cursors->setObjectName(
-		QString::fromUtf8("actionViewShowCursors"));
-	action_view_show_cursors->setText(tr("Show &Cursors"));
-	menu_view->addAction(action_view_show_cursors);
-
 	// Decoders Menu
 #ifdef ENABLE_DECODE
 	QMenu *const menu_decoders = new QMenu;
@@ -216,6 +205,84 @@ void MainWindow::setup_ui()
 
 	menu_decoders->addMenu(menu_decoders_add);
 #endif
+
+	// Cursors Menu
+	QMenu *const menu_cursor = new QMenu;
+	menu_cursor->setTitle(tr("&Cursors"));
+
+	QAction *action_cursor_show_cursors = new QAction(this);
+	action_cursor_show_cursors->setCheckable(true);
+	action_cursor_show_cursors->setChecked(_view->cursors_shown());
+	action_cursor_show_cursors->setShortcut(QKeySequence(Qt::Key_C));
+	action_cursor_show_cursors->setObjectName(
+		QString::fromUtf8("actionViewShowCursors"));
+	action_cursor_show_cursors->setText(tr("Show &Cursors"));
+	action_cursor_show_cursors->setIcon(
+		QIcon(":/icons/cursor-show.svg"));
+
+	QAction *action_cursor_prev = new QAction(this);
+	action_cursor_prev->setEnabled(_view->cursors_shown());
+	action_cursor_prev->setObjectName("actionCursorPrev");
+	action_cursor_prev->setText(tr("Search previous edge"));
+	action_cursor_prev->setIcon(
+		QIcon(":/icons/cursor-prev.svg"));
+
+	QAction *action_cursor_prev_falling = new QAction(this);
+	action_cursor_prev_falling->setEnabled(_view->cursors_shown());
+	action_cursor_prev_falling->setObjectName("actionCursorPrevFalling");
+	action_cursor_prev_falling->setText(tr("Search previous falling edge"));
+	action_cursor_prev_falling->setIcon(
+		QIcon(":/icons/cursor-prev-falling.svg"));
+
+	QAction *action_cursor_prev_rising = new QAction(this);
+	action_cursor_prev_rising->setEnabled(_view->cursors_shown());
+	action_cursor_prev_rising->setObjectName("actionCursorPrevRising");
+	action_cursor_prev_rising->setText(tr("Search previous rising edge"));
+	action_cursor_prev_rising->setIcon(
+		QIcon(":/icons/cursor-prev-rising.svg"));
+
+	QAction *action_cursor_next_falling = new QAction(this);
+	action_cursor_next_falling->setEnabled(_view->cursors_shown());
+	action_cursor_next_falling->setObjectName("actionCursorNextFalling");
+	action_cursor_next_falling->setText(tr("Search next falling edge"));
+	action_cursor_next_falling->setIcon(
+		QIcon(":/icons/cursor-next-falling.svg"));
+
+	QAction *action_cursor_next_rising = new QAction(this);
+	action_cursor_next_rising->setEnabled(_view->cursors_shown());
+	action_cursor_next_rising->setObjectName("actionCursorNextRising");
+	action_cursor_next_rising->setText(tr("Search next rising edge"));
+	action_cursor_next_rising->setIcon(
+		QIcon(":/icons/cursor-next-rising.svg"));
+
+	QAction *action_cursor_next = new QAction(this);
+	action_cursor_next->setEnabled(_view->cursors_shown());
+	action_cursor_next->setObjectName("actionCursorNext");
+	action_cursor_next->setText(tr("Search next edge"));
+	action_cursor_next->setIcon(
+		QIcon(":/icons/cursor-next.svg"));
+
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_prev, SLOT(setEnabled(bool)));
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_prev_falling, SLOT(setEnabled(bool)));
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_prev_rising, SLOT(setEnabled(bool)));
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_next_falling, SLOT(setEnabled(bool)));
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_next_rising, SLOT(setEnabled(bool)));
+	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
+		action_cursor_next, SLOT(setEnabled(bool)));
+
+	menu_cursor->addAction(action_cursor_show_cursors);
+	menu_cursor->addSeparator();
+	menu_cursor->addAction(action_cursor_prev);
+	menu_cursor->addAction(action_cursor_prev_falling);
+	menu_cursor->addAction(action_cursor_prev_rising);
+	menu_cursor->addAction(action_cursor_next_falling);
+	menu_cursor->addAction(action_cursor_next_rising);
+	menu_cursor->addAction(action_cursor_next);
 
 	// Help Menu
 	QMenu *const menu_help = new QMenu;
@@ -231,6 +298,7 @@ void MainWindow::setup_ui()
 #ifdef ENABLE_DECODE
 	menu_bar->addAction(menu_decoders->menuAction());
 #endif
+	menu_bar->addAction(menu_cursor->menuAction());
 	menu_bar->addAction(menu_help->menuAction());
 
 	setMenuBar(menu_bar);
@@ -256,6 +324,17 @@ void MainWindow::setup_ui()
 	connect(_sampling_bar, SIGNAL(run_stop()), this,
 		SLOT(run_stop()));
 	addToolBar(_sampling_bar);
+
+	// Setup the cursor toolbar
+	QToolBar *const tb_cursor = new QToolBar(tr("Cursor Toolbar"), this);
+	tb_cursor->addAction(action_cursor_show_cursors);
+	tb_cursor->addAction(action_cursor_prev);
+	tb_cursor->addAction(action_cursor_prev_falling);
+	tb_cursor->addAction(action_cursor_prev_rising);
+	tb_cursor->addAction(action_cursor_next_falling);
+	tb_cursor->addAction(action_cursor_next_rising);
+	tb_cursor->addAction(action_cursor_next);
+	addToolBar(tb_cursor);
 
 	// Set the title
 	setWindowTitle(tr("PulseView"));
@@ -421,6 +500,30 @@ void MainWindow::on_actionAbout_triggered()
 {
 	dialogs::About dlg(this);
 	dlg.exec();
+}
+
+void MainWindow::on_actionCursorPrev_triggered()
+{
+}
+
+void MainWindow::on_actionCursorPrevFalling_triggered()
+{
+}
+
+void MainWindow::on_actionCursorPrevRising_triggered()
+{
+}
+
+void MainWindow::on_actionCursorNextFalling_triggered()
+{
+}
+
+void MainWindow::on_actionCursorNextRising_triggered()
+{
+}
+
+void MainWindow::on_actionCursorNext_triggered()
+{
 }
 
 void MainWindow::add_decoder(srd_decoder *decoder)
