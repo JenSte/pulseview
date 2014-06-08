@@ -222,60 +222,47 @@ void MainWindow::setup_ui()
 	action_cursor_show_cursors->setIcon(
 		QIcon(":/icons/cursor-show.svg"));
 
-	QAction *action_cursor_prev = new QAction(this);
-	action_cursor_prev->setEnabled(_view->cursors_shown());
+	action_cursor_prev = new QAction(this);
+	action_cursor_prev->setEnabled(false);
 	action_cursor_prev->setObjectName("actionCursorPrev");
 	action_cursor_prev->setText(tr("Search previous edge"));
 	action_cursor_prev->setIcon(
 		QIcon(":/icons/cursor-prev.svg"));
 
-	QAction *action_cursor_prev_falling = new QAction(this);
-	action_cursor_prev_falling->setEnabled(_view->cursors_shown());
+	action_cursor_prev_falling = new QAction(this);
+	action_cursor_prev_falling->setEnabled(false);
 	action_cursor_prev_falling->setObjectName("actionCursorPrevFalling");
 	action_cursor_prev_falling->setText(tr("Search previous falling edge"));
 	action_cursor_prev_falling->setIcon(
 		QIcon(":/icons/cursor-prev-falling.svg"));
 
-	QAction *action_cursor_prev_rising = new QAction(this);
-	action_cursor_prev_rising->setEnabled(_view->cursors_shown());
+	action_cursor_prev_rising = new QAction(this);
+	action_cursor_prev_rising->setEnabled(false);
 	action_cursor_prev_rising->setObjectName("actionCursorPrevRising");
 	action_cursor_prev_rising->setText(tr("Search previous rising edge"));
 	action_cursor_prev_rising->setIcon(
 		QIcon(":/icons/cursor-prev-rising.svg"));
 
-	QAction *action_cursor_next_falling = new QAction(this);
-	action_cursor_next_falling->setEnabled(_view->cursors_shown());
+	action_cursor_next_falling = new QAction(this);
+	action_cursor_next_falling->setEnabled(false);
 	action_cursor_next_falling->setObjectName("actionCursorNextFalling");
 	action_cursor_next_falling->setText(tr("Search next falling edge"));
 	action_cursor_next_falling->setIcon(
 		QIcon(":/icons/cursor-next-falling.svg"));
 
-	QAction *action_cursor_next_rising = new QAction(this);
-	action_cursor_next_rising->setEnabled(_view->cursors_shown());
+	action_cursor_next_rising = new QAction(this);
+	action_cursor_next_rising->setEnabled(false);
 	action_cursor_next_rising->setObjectName("actionCursorNextRising");
 	action_cursor_next_rising->setText(tr("Search next rising edge"));
 	action_cursor_next_rising->setIcon(
 		QIcon(":/icons/cursor-next-rising.svg"));
 
-	QAction *action_cursor_next = new QAction(this);
-	action_cursor_next->setEnabled(_view->cursors_shown());
+	action_cursor_next = new QAction(this);
+	action_cursor_next->setEnabled(false);
 	action_cursor_next->setObjectName("actionCursorNext");
 	action_cursor_next->setText(tr("Search next edge"));
 	action_cursor_next->setIcon(
 		QIcon(":/icons/cursor-next.svg"));
-
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_prev, SLOT(setEnabled(bool)));
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_prev_falling, SLOT(setEnabled(bool)));
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_prev_rising, SLOT(setEnabled(bool)));
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_next_falling, SLOT(setEnabled(bool)));
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_next_rising, SLOT(setEnabled(bool)));
-	connect(action_cursor_show_cursors, SIGNAL(toggled(bool)),
-		action_cursor_next, SLOT(setEnabled(bool)));
 
 	menu_cursor->addAction(action_cursor_show_cursors);
 	menu_cursor->addSeparator();
@@ -345,6 +332,10 @@ void MainWindow::setup_ui()
 	connect(&_session, SIGNAL(capture_state_changed(int)), this,
 		SLOT(capture_state_changed(int)));
 
+	connect(_view, SIGNAL(selection_changed()),
+		this, SLOT(view_selection_changed()));
+	connect(action_cursor_show_cursors, SIGNAL(changed()),
+		this, SLOT(view_selection_changed()), Qt::QueuedConnection);
 }
 
 void MainWindow::session_error(
@@ -557,16 +548,7 @@ void MainWindow::start_transition_search(
 		_view->cursors().second()->time() :
 		_view->cursors().first()->time();
 
-	// get the selected logic signals
-	vector<shared_ptr<view::LogicSignal>> logic_signals;
-	for (const auto &s: _session.get_signals()) {
-		shared_ptr<view::LogicSignal> ls =
-			std::dynamic_pointer_cast<view::LogicSignal>(s);
-		if (ls && ls->enabled() && ls->selected()) {
-			logic_signals.push_back(ls);
-		}
-	}
-
+	auto logic_signals = selected_logic_signals();
 	if (logic_signals.size() != 1) {
 		return;
 	}
@@ -623,6 +605,36 @@ void MainWindow::run_stop()
 void MainWindow::capture_state_changed(int state)
 {
 	_sampling_bar->set_capture_state((pv::SigSession::capture_state)state);
+}
+
+void MainWindow::view_selection_changed()
+{
+	QAction * const actions[] = {
+		action_cursor_prev, action_cursor_prev_falling, action_cursor_prev_rising,
+		action_cursor_next, action_cursor_next_falling, action_cursor_next_rising
+	};
+
+	// Enable the 'search edge' buttons if only one logic signal is selected.
+	const bool enabled =
+		_view->cursors_shown() && 1 == selected_logic_signals().size();
+	for (auto a: actions) {
+		a->setEnabled(enabled);
+	}
+}
+
+vector<shared_ptr<view::LogicSignal>> MainWindow::selected_logic_signals() const
+{
+	vector<shared_ptr<view::LogicSignal>> result;
+
+	for (const auto &s: _session.get_signals()) {
+		shared_ptr<view::LogicSignal> ls =
+			std::dynamic_pointer_cast<view::LogicSignal>(s);
+		if (ls && ls->enabled() && ls->selected()) {
+			result.push_back(ls);
+		}
+	}
+
+	return result;
 }
 
 } // namespace pv

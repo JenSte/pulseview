@@ -113,6 +113,8 @@ private slots:
 
 	void capture_state_changed(int state);
 
+	void view_selection_changed();
+
 private:
 	/**
 	 * Name of the setting used to remember the directory
@@ -125,6 +127,18 @@ private:
 	 * containing the last file that was saved.
 	 */
 	static const char *SettingSaveDirectory;
+
+	/**
+	 * Returns all currently selected logic signals.
+	 */
+	std::vector<std::shared_ptr<view::LogicSignal>> selected_logic_signals() const;
+
+	QAction *action_cursor_prev;
+	QAction *action_cursor_prev_falling;
+	QAction *action_cursor_prev_rising;
+	QAction *action_cursor_next_falling;
+	QAction *action_cursor_next_rising;
+	QAction *action_cursor_next;
 
 	DeviceManager &_device_manager;
 
