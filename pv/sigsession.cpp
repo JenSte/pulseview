@@ -39,6 +39,8 @@
 #include "view/decodetrace.h"
 #include "view/logicsignal.h"
 
+#include "util.h"
+
 #include <cassert>
 #include <mutex>
 #include <stdexcept>
@@ -57,6 +59,8 @@ using std::set;
 using std::shared_ptr;
 using std::string;
 using std::vector;
+
+using namespace pv::util;
 
 namespace pv {
 
@@ -172,15 +176,11 @@ void SigSession::start_capture(function<void (const QString)> error_handler)
 	assert(_dev_inst->dev_inst());
 
 	// Check that at least one probe is enabled
-	const GSList *l;
-	for (l = _dev_inst->dev_inst()->channels; l; l = l->next) {
-		sr_channel *const probe = (sr_channel*)l->data;
-		assert(probe);
-		if (probe->enabled)
-			break;
-	}
+	GSL_range<const sr_channel*> channels(_dev_inst->dev_inst()->channels);
+	bool enabled = std::any_of(channels.begin(), channels.end(),
+					[](const sr_channel *ch) { return ch->enabled; });
 
-	if (!l) {
+	if (!enabled) {
 		error_handler(tr("No channels enabled."));
 		return;
 	}
@@ -234,11 +234,11 @@ bool SigSession::add_decoder(srd_decoder *const dec)
 			new data::DecoderStack(*this, dec));
 
 		// Make a list of all the probes
+		GSL_range<const srd_channel*>     ch(dec->channels);
+		GSL_range<const srd_channel*> opt_ch(dec->opt_channels);
 		std::vector<const srd_channel*> all_probes;
-		for(const GSList *i = dec->channels; i; i = i->next)
-			all_probes.push_back((const srd_channel*)i->data);
-		for(const GSList *i = dec->opt_channels; i; i = i->next)
-			all_probes.push_back((const srd_channel*)i->data);
+		std::copy(    ch.begin(),     ch.end(), back_inserter(all_probes));
+		std::copy(opt_ch.begin(), opt_ch.end(), back_inserter(all_probes));
 
 		// Auto select the initial probes
 		for (const srd_channel *pdch : all_probes)
@@ -316,9 +316,8 @@ void SigSession::update_signals(shared_ptr<device::DevInst> dev_inst)
 	// Detect what data types we will receive
 	if(dev_inst) {
 		assert(dev_inst->dev_inst());
-		for (const GSList *l = dev_inst->dev_inst()->channels;
-			l; l = l->next) {
-			const sr_channel *const probe = (const sr_channel *)l->data;
+		for (const auto probe: GSL_range<const sr_channel*>(
+				dev_inst->dev_inst()->channels)) {
 			if (!probe->enabled)
 				continue;
 
@@ -352,11 +351,11 @@ void SigSession::update_signals(shared_ptr<device::DevInst> dev_inst)
 			break;
 
 		assert(dev_inst->dev_inst());
-		for (const GSList *l = dev_inst->dev_inst()->channels;
-			l; l = l->next) {
-			shared_ptr<view::Signal> signal;
-			sr_channel *const probe = (sr_channel *)l->data;
+		for (const auto *probe: GSL_range<const sr_channel*>(
+				dev_inst->dev_inst()->channels)) {
 			assert(probe);
+
+			shared_ptr<view::Signal> signal;
 
 			switch(probe->type) {
 			case SR_CHANNEL_LOGIC:
@@ -468,8 +467,7 @@ void SigSession::feed_in_meta(const sr_dev_inst *sdi,
 {
 	(void)sdi;
 
-	for (const GSList *l = meta.config; l; l = l->next) {
-		const sr_config *const src = (const sr_config*)l->data;
+	for (const auto src: GSL_range<const sr_config*>(meta.config)) {
 		switch (src->key) {
 		case SR_CONF_SAMPLERATE:
 			/// @todo handle samplerate changes
@@ -534,12 +532,10 @@ void SigSession::feed_in_analog(const sr_datafeed_analog &analog)
 	const float *data = analog.data;
 	bool sweep_beginning = false;
 
-	for (GSList *p = analog.channels; p; p = p->next)
-	{
-		shared_ptr<data::AnalogSnapshot> snapshot;
-
-		sr_channel *const probe = (sr_channel*)p->data;
+	for (const auto probe: GSL_range<const sr_channel*>(analog.channels)) {
 		assert(probe);
+
+		shared_ptr<data::AnalogSnapshot> snapshot;
 
 		// Try to get the snapshot of the probe
 		const map< const sr_channel*, shared_ptr<data::AnalogSnapshot> >::

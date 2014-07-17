@@ -21,6 +21,7 @@
 #ifndef PULSEVIEW_UTIL_H
 #define PULSEVIEW_UTIL_H
 
+#include <glib.h>
 #include <math.h>
 
 #include <QString>
@@ -52,6 +53,55 @@ QString format_time(
  * @return The formated value.
  */
 QString format_second(double second);
+
+/**
+ * STL adapter for glibs GSList data type.
+ *
+ * Note that this class doesn't take ownership of the list, it just provides
+ * (input) iterators to use the list in STL algorithms.
+ */
+template<typename T>
+class GSL_range {
+	const GSList *_list;
+
+public:
+	class It : public std::iterator<std::input_iterator_tag, T> {
+		const GSList *_l;
+
+	public:
+		It(const GSList *l) :
+			_l(l)
+		{ }
+
+		T operator*() const
+		{
+			return static_cast<T>(_l->data);
+		}
+
+		const It& operator++()
+		{
+			_l = _l->next;
+			return *this;
+		}
+
+		bool operator==(const It& other)
+		{
+			return _l == other._l;
+		}
+
+		bool operator!=(const It& other)
+		{
+			return _l != other._l;
+		}
+	};
+
+	GSL_range(const GSList *list) :
+		_list(list)
+	{ }
+
+	It begin() { return { _list }; }
+	It end() { return { nullptr }; }
+};
 
 } // namespace util
 } // namespace pv
