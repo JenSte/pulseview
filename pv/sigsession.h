@@ -190,12 +190,6 @@ signals:
 	void data_received();
 
 	void frame_ended();
-
-private:
-	// TODO: This should not be necessary. Multiple concurrent
-	// sessions should should be supported and it should be
-	// possible to associate a pointer with a sr_session.
-	static SigSession *_session;
 };
 
 } // namespace pv

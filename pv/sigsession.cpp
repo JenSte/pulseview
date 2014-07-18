@@ -64,16 +64,10 @@ using namespace pv::util;
 
 namespace pv {
 
-// TODO: This should not be necessary
-SigSession* SigSession::_session = NULL;
-
 SigSession::SigSession(DeviceManager &device_manager) :
 	_device_manager(device_manager),
 	_capture_state(Stopped)
 {
-	// TODO: This should not be necessary
-	_session = this;
-
 	set_default_device();
 }
 
@@ -85,9 +79,6 @@ SigSession::~SigSession()
 	stop_capture();
 
 	_dev_inst->release();
-
-	// TODO: This should not be necessary
-	_session = NULL;
 }
 
 shared_ptr<device::DevInst> SigSession::get_device() const
@@ -113,7 +104,7 @@ void SigSession::set_device(
 
 	if (dev_inst) {
 		dev_inst->use(this);
-		sr_session_datafeed_callback_add(data_feed_in_proc, NULL);
+		sr_session_datafeed_callback_add(data_feed_in_proc, this);
 		update_signals(dev_inst);
 	}
 }
@@ -629,9 +620,9 @@ void SigSession::data_feed_in(const struct sr_dev_inst *sdi,
 void SigSession::data_feed_in_proc(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *packet, void *cb_data)
 {
-	(void) cb_data;
-	assert(_session);
-	_session->data_feed_in(sdi, packet);
+	SigSession *t = static_cast<SigSession*>(cb_data);
+	assert(t);
+	t->data_feed_in(sdi, packet);
 }
 
 } // namespace pv
